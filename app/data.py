@@ -1,4 +1,3 @@
-# app/data.py 完整代码（仅加载Fashion MNIST，无旧数据残留）
 from dotenv import load_dotenv
 import os
 import numpy as np

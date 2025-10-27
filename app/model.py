@@ -17,6 +17,7 @@ if project_root not in sys.path:
 else:
     print(f"✅ 根目录已在搜索路径中：{project_root}")
 
+
 # ===================== 第二步：导入依赖库（必须在路径配置之后）=====================
 from dotenv import load_dotenv
 import mlflow
@@ -27,6 +28,7 @@ from sklearn.metrics import accuracy_score
 
 # 导入Fashion MNIST数据加载函数（此时app包已能正常识别）
 from app.data import load_local_fashion_mnist
+
 
 # ===================== 第三步：配置MLflow（适配Fashion MNIST）=====================
 load_dotenv()  # 加载.env（若配置了MLflow地址，优先使用；无则默认本地模式）
