@@ -1,31 +1,32 @@
+# 第一步：添加项目根目录到 Python 搜索路径（解决 ModuleNotFoundError）
+import sys
+from pathlib import Path
+
+# 获取当前测试文件（test_ml.py）的路径，向上回溯到项目根目录
+test_file_path = Path(__file__).resolve()  # 当前文件绝对路径
+tests_dir = test_file_path.parent  # 上级目录：tests/
+project_root = tests_dir.parent  # 上上级目录：项目根目录（包含 app/）
+
+# 将项目根目录加入 sys.path（优先搜索）
+if str(project_root) not in sys.path:
+    sys.path.insert(0, str(project_root))
+
+# 第二步：正常导入所需模块（此时 app 已能被识别）
+from app.model import train_model  # 根据实际需要调整导入内容
+from app.data import load_local_fashion_mnist
 import pytest
-from app.model import load_data, train_model
-from app.predict import load_trained_model, predict_iris
-import numpy as np
 
 
+# 后续测试用例代码...
+# 示例测试用例（根据你的实际功能调整）
 def test_data_loading():
-    """测试数据加载：确保返回正确的数据集格式和维度"""
-    X_train, X_test, y_train, y_test = load_data()
-    # 使用pytest.raises避免F401错误（验证断言逻辑）
-    with pytest.raises(AssertionError):
-        assert X_train.shape == (121, 4)  # 故意错误的维度，验证断言生效
-    assert X_train.shape == (120, 4)  # 150个样本，80%训练集（120个），4个特征
-    assert y_test.shape == (30,)  # 20%测试集（30个）
-    assert set(y_train) == {0, 1, 2}  # 鸢尾花3个类别
+    # 测试数据加载是否正常
+    X_train, X_test, y_train, y_test, scaler = load_local_fashion_mnist()
+    assert X_train.shape == (60000, 784), "训练集维度错误"
+    assert len(set(y_train)) == 10, "分类数错误（应为10分类）"
 
 
 def test_model_training():
-    """测试模型训练：确保训练后准确率达标（至少0.8）"""
-    model, accuracy = train_model(learning_rate=0.1, max_iter=100)
-    assert accuracy >= 0.8  # 简单分类任务，准确率应不低于80%
-
-
-def test_model_prediction():
-    """测试模型预测：确保对已知样本的预测正确"""
-    # 加载本地训练的模型（mlruns/目录下的最新run）
-    model = load_trained_model(model_uri="runs:/latest/iris-classifier-model")
-    # 使用numpy处理数据，避免F401错误
-    test_data = np.array([5.1, 3.5, 1.4, 0.2])
-    prediction = predict_iris(model, test_data)
-    assert prediction == 0
+    # 测试模型训练是否正常
+    model, test_acc = train_model(learning_rate=0.1, max_iter=1000)
+    assert 0.85 <= test_acc <= 0.95, "测试准确率异常（正常范围0.85-0.95）"
