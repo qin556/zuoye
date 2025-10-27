@@ -31,10 +31,7 @@ def test_load_local_fashion_mnist():
     try:
         X_train, X_test, y_train, y_test, scaler = load_local_fashion_mnist()
         # 验证数据维度（Fashion MNIST 固定维度）
-        assert X_train.shape == (
-            60000,
-            784,
-        ), f"训练集维度错误，实际：{X_train.shape}"
+        assert X_train.shape == (60000, 784), f"训练集维度错误，实际：{X_train.shape}"
         assert y_train.shape == (60000,), f"训练标签维度错误，实际：{y_train.shape}"
         assert len(set(y_train)) == 10, f"分类数错误，实际：{len(set(y_train))}"
         print("✅ 数据加载测试通过")
