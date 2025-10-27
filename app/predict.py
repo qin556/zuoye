@@ -24,6 +24,7 @@ mlflow.set_tracking_uri(None)  # 本地模式
 FASHION_MNIST_MODEL_NAME = "Fashion-MNIST-Logistic-Regression-Model"
 SCALER_ARTIFACT_PATH = "preprocessing/fashion_mnist_scaler.pkl"
 
+
 # ===================== 第四步：加载模型和标准化器=====================
 def load_trained_model_and_scaler(
     model_name: str = FASHION_MNIST_MODEL_NAME, model_stage: str = "Latest"
@@ -48,7 +49,8 @@ def load_trained_model_and_scaler(
 
     except mlflow.exceptions.MlflowException as e:
         raise RuntimeError(
-            f"❌ 模型加载失败！请先运行 app/model.py 训练Fashion MNIST模型。\n" f"错误原因：{str(e)}"
+            f"❌ 模型加载失败！请先运行 app/model.py 训练Fashion MNIST模型。\n"
+            f"错误原因：{str(e)}"
         ) from e
 
 
@@ -72,7 +74,9 @@ def predict_fashion_mnist(
 
     # 验证输入维度
     if len(input_features) != 784:
-        raise ValueError(f"❌ 输入特征维度错误！需784个数值（28x28图像展平），实际输入{len(input_features)}个")
+        raise ValueError(
+            f"❌ 输入特征维度错误！需784个数值（28x28图像展平），实际输入{len(input_features)}个"
+        )
 
     # 标准化输入+预测
     input_array = np.array(input_features).reshape(1, -1)
