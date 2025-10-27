@@ -9,6 +9,7 @@ import mlflow
 from mlflow.pyfunc import PyFuncModel
 from sklearn.preprocessing import StandardScaler  # 关键：新增导入，解决NameError
 
+
 # ===================== 第二步：强制添加根目录到搜索路径=====================
 current_script_path = os.path.abspath(__file__)
 app_dir = os.path.dirname(current_script_path)
@@ -17,6 +18,7 @@ project_root = os.path.dirname(app_dir)
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
     print(f"✅ 根目录已加入搜索路径：{project_root}")
+
 
 # ===================== 第三步：配置MLflow+常量定义=====================
 load_dotenv()
