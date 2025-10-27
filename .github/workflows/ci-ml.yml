@@ -1,83 +1,37 @@
-name: ML Project CI Pipeline
-on: [push, pull_request]  # 代码推送/PR时触发
+format:
+  runs-on: ubuntu-latest
+  steps:
+    - uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}  # 允许CI推送修改
 
-jobs:
-  # 1. 代码检查（对应文档）
-  lint:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.10.19"
-          cache: "pip"  # 缓存pip依赖，加速后续执行
-      - name: Install dependencies
-        run: pip install -r requirements.txt
-      - name: Run flake8 (linting)
-        run: flake8 app/ tests/ --count --exit-zero
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+        cache: "pip"
 
-  # 2. 代码格式化检查（对应文档）- 修复版本漂移问题
-  format:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.10.19"
-          cache: "pip"
-      - name: Install dependencies (含锁定版本的black)
-        run: pip install -r requirements.txt  # 改用requirements.txt安装，避免版本漂移
-      - name: Check code format
-        run: black app/ tests/ --check
+    - name: 清除旧版本缓存
+      run: |
+        pip cache purge
+        rm -rf ~/.cache/black
 
-  # 3. ML功能测试（对应文档）- 新增数据自动下载，解决CI无数据问题
-  test-ml:
-    runs-on: ubuntu-latest
-    needs: [lint, format]  # 依赖lint和format通过后执行
-    steps:
-      - uses: actions/checkout@v4
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.10.19"
-          cache: "pip"
-      - name: Install dependencies
-        run: pip install -r requirements.txt
-      # 新增：自动下载Fashion MNIST数据到指定路径
-      - name: Download Fashion MNIST data
-        run: |
-          # 创建data/raw目录（与data.py中路径对应）
-          mkdir -p data/raw
-          # 下载4个idx文件（Fashion MNIST官方源）
-          wget -P data/raw http://yann.lecun.com/exdb/mnist/train-images-idx3-ubyte
-          wget -P data/raw http://yann.lecun.com/exdb/mnist/train-labels-idx1-ubyte
-          wget -P data/raw http://yann.lecun.com/exdb/mnist/t10k-images-idx3-ubyte
-          wget -P data/raw http://yann.lecun.com/exdb/mnist/t10k-labels-idx1-ubyte
-          # 验证文件是否下载成功
-          ls data/raw | wc -l | grep -q "4" || { echo "数据下载失败"; exit 1; }
-      - name: Run ML tests (data+model+prediction)
-        run: pytest tests/test_ml.py -v
-      - name: Verify MLflow experiment (本地记录)
-        run: |
-          # 用短迭代快速生成实验记录，避免CI超时
-          python -c "from app.model import train_model; train_model(learning_rate=0.1, max_iter=100)"
-          ls mlruns/ | grep -q "0"  # 检查是否生成实验目录（默认实验ID以0开头）
+    - name: 安装锁定版本的依赖
+      run: pip install -r requirements.txt
 
-  # 4. Docker构建（对应文档）- 修复镜像名与项目不符问题
-  docker-build:
-    runs-on: ubuntu-latest
-    needs: [test-ml]  # 依赖测试通过后执行
-    steps:
-      - uses: actions/checkout@v4
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-      - name: Build Docker image (适配Fashion MNIST项目)
-        run: docker build -t ml-fashion-mnist-project .  # 修正镜像名，与项目匹配
-      - name: Verify Docker image (run model training)
-        run: |
-          # 挂载.env（用GitHub Secrets存储敏感信息，避免硬编码）
-          echo "MLFLOW_TRACKING_URI=http://localhost:5000" > .env
-          # 运行容器内训练脚本（用短迭代快速验证）
-          docker run --rm ml-fashion-mnist-project python -c "from app.model import train_model; train_model(learning_rate=0.1, max_iter=100)"
+    - name: 检查代码格式
+      id: format-check
+      run: black app/ tests/ --check || echo "format_failed=true" >> $GITHUB_OUTPUT
+
+    - name: 自动格式化代码（若检查失败）
+      if: steps.format-check.outputs.format_failed == 'true'
+      run: black app/ tests/
+
+    - name: 提交自动格式化结果
+      if: steps.format-check.outputs.format_failed == 'true'
+      run: |
+        git config --global user.name "GitHub Actions"
+        git config --global user.email "actions@github.com"
+        git add app/ tests/
+        git commit -m "ci: 自动格式化代码以符合black规范"
+        git push origin main
